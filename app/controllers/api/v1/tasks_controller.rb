@@ -1,6 +1,5 @@
 class Api::V1::TasksController < ApplicationController
   before_action :authenticate_user!, only: %i[create update]
-  rescue_from ActiveRecord::RecordNotFound, with: :render_active_record_error
   before_action :restrict_user_to_have_one_active_task, only: %i[create]
 
   def index
@@ -50,10 +49,6 @@ class Api::V1::TasksController < ApplicationController
     end
 
     render json: { error_message: message }, status: 400
-  end
-
-  def render_active_record_error(error)
-    render json: { error_message: "We are experiencing internal errors. Please refresh the page and contact support. #{error.message}" }, status: 400
   end
 
   def create_json_response(task)

@@ -12,6 +12,8 @@ RSpec.describe User, type: :model do
   end
 
   it { is_expected.to have_many :tasks }
+  it { is_expected.to have_many :accepted_tasks }
+
 
   describe "Validations" do
     it { is_expected.to validate_presence_of :email }
