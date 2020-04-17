@@ -67,7 +67,7 @@ RSpec.describe 'PUT api/v1/tasks/:id', type: :request do
       end
 
       it 'response with error message' do
-        expect(response_json['error_message']).to eq 'We are experiencing internal errors. Please refresh the page and contact support. No activity specified'
+        expect(response_json['error_message']).to eq "We are experiencing internal errors. Please refresh the page and contact support. Couldn't find Product without an ID"
       end
 
       it 'returns 400 status' do

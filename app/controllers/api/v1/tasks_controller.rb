@@ -1,6 +1,7 @@
 class Api::V1::TasksController < ApplicationController
   before_action :authenticate_user!, only: %i[create update]
   before_action :restrict_user_to_have_one_active_task, only: %i[create]
+  before_action :get_task, only: :update
 
   def index
     tasks = Task.where(status: :confirmed)
@@ -14,22 +15,35 @@ class Api::V1::TasksController < ApplicationController
   end
 
   def update
-    task = Task.find(params[:id])
-    if params[:activity]
-      if params[:activity] == "confirmed" && task.task_items.count < 40 && task.task_items.count >= 5
-        task.update_attribute(:status, 'confirmed')
+    case params[:activity]
+    when 'confirmed'
+      if @task.is_confirmable?(current_user)
+        @task.update_attribute(:status, params[:activity])
         render json: { message: "Your task has been confirmed" }
       else
-        render_error_message(task)
+        render_error_message(@task)
+      end
+    when 'claimed'
+      if @task.is_claimable?(current_user)
+        @task.update_attributes(status: params[:activity], provider: current_user)
+        render json: { message: 'Success' }
+      else
+        render_error_message(@task)
       end
     else
       product = Product.find(params[:product_id])
-      task.task_items.create(product: product)
-      render json: create_json_response(task)
+      user_task = current_user.tasks.find(params[:id])
+
+      user_task.task_items.create(product: product)
+      render json: create_json_response(@task)
     end
   end
 
   private
+
+  def get_task
+    @task = Task.find(params[:id])
+  end
 
   def restrict_user_to_have_one_active_task
     if current_user.tasks.any?{|task| task.status ==  'confirmed'}
@@ -40,9 +54,13 @@ class Api::V1::TasksController < ApplicationController
 
   def render_error_message(task)
     case
-    when task.task_items.count >= 40
+    when params[:activity] == 'claimed' && task.claimed? 
+      message = 'You cannot claim a claimed task'
+    when params[:activity] == 'claimed' && task.user == current_user
+      message = 'You cant claim your own task'
+    when task.task_items.count >= 40 && task.user == current_user
       message = "You have selected too many products."
-    when task.task_items.count < 5
+    when task.task_items.count < 5 && task.user == current_user
       message = "You have to pick at least 5 products."
     else
       message = "We are experiencing internal errors. Please refresh the page and contact support. No activity specified"
